@@ -11,6 +11,8 @@ library(viridis)
 library(ggdark)
 library(lubridate)
 library(magick)
+library(ggpubr)
+library(png)
 
 # Import cstimer .txt file
 df <- jsonlite::fromJSON("cstimer_export_sample.txt") %>%
@@ -28,24 +30,39 @@ df <- jsonlite::fromJSON("cstimer_export_sample.txt") %>%
   mutate(t = cut(time, breaks = seq(1, 60, .1), labels = F)) %>%
   select(day, t)
 
-# Plot
-p <- df %>%
-  ggplot(aes(x = day, y = t, fill = t)) +
-  geom_tile() +
-  scale_fill_viridis(option = "plasma", direction = -1) +
-  coord_polar() +
-  dark_theme_void() +
-  theme(legend.position = "none")
+# Function to generate pfp
+get_pfp <- function(color_scheme, dir = -1, b = 0, e = 1) {
+  
+  # Plot
+  p <- df %>%
+    ggplot(aes(x = day, y = t, fill = t)) +
+    geom_tile() +
+    scale_fill_viridis(option = color_scheme, 
+                       direction = dir, begin = b, end = e) +
+    coord_polar() +
+    dark_theme_void() +
+    theme(legend.position = "none")
+  
+  # Transform and save
+  f <- paste0("pfp_", color_scheme, ".png")
+  ggsave(plot = p, width = 10, height = 10, filename = f)
+  im <- image_read(f)
+  im1 <- image_crop(im, "1000x1000+1000+1000")
+  fig <- image_draw(image_blank(1000, 1000))
+  symbols(500, 500, circles = 500, bg = "black", inches = F, add = T)
+  dev.off()
+  im2 <- image_composite(im1, fig, operator= "copyopacity")
+  im3 <- image_background(im2, "none")
+  image_write(im3, path = f, format = "png")
+  
+  # Return ggplot
+  return(ggplot() + background_image(readPNG(f)))
+}
 
-# Transform and save
-ggsave(plot = p, width = 10, height = 10, filename = "pfp.png")
-im <- magick::image_read("pfp.png")
-ii <- magick::image_info(im)
-ii_min <- min(ii$width, ii$height)
-im1 <- magick::image_crop(im, "2000x2000+500+500")
-fig <- magick::image_draw(image_blank(2000, 2000))
-symbols(1000, 1000, circles=1000, bg='black', inches=FALSE, add=TRUE)
-dev.off()
-im2 <- magick::image_composite(im1, fig, operator='copyopacity')
-im3 <- magick::image_background(im2, 'gray20')
-image_write(im3, path = "pfp.png", format = "png")
+# Generate pfps
+pfps <- lapply(LETTERS[1:8], get_pfp)
+
+# Save thumbnail
+images <- image_read(paste0("pfp_", LETTERS[1:8], ".png"))
+thumbnail <- image_montage(images, tile = "4x2", bg = "none")
+image_write(thumbnail, "thumbnail.png", format = "png")
