@@ -64,5 +64,5 @@ pfps <- lapply(LETTERS[1:8], get_pfp)
 
 # Save thumbnail
 images <- image_read(paste0("pfp_", LETTERS[1:8], ".png"))
-thumbnail <- image_montage(images, tile = "4x2", bg = "none")
+thumbnail <- image_montage(images, geometry = "150x150", tile = "4x2", bg = "none")
 image_write(thumbnail, "thumbnail.png", format = "png")
